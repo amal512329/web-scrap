@@ -16,9 +16,6 @@ options.add_argument('--no-sandbox')
 options.add_argument('--headless')
 options.add_argument('--disable-dev-shm-usage')
 options.add_argument('--disable-blink-features=AutomationControlled')
-options.add_argument("--log-level=3")  # This suppresses most ChromeDriver logs
-options.add_argument('--disable-gpu')
-options.add_argument('--disable-software-rasterizer')
 
 # Use Service to set the executable path for the WebDriver
 service = Service("./chromedriver/chromedriver.exe")  # Set the correct path to chromedriver here
@@ -42,13 +39,11 @@ def setup_driver(timeout=180):
     # Specify the download folder path
     
     chrome_options.add_experimental_option("prefs", {
-        'download.default_directory': r"C:\Users\Lenovo\Downloads\\",  
-        "download.prompt_for_download": False,           # Disable the prompt
-        "download.directory_upgrade": True,
-        "safebrowsing.enabled": False  ,                    # Enable safe browsing
-        "download.extensions_to_open": ""
-    })
-
+    "download.default_directory": r"C:\Users\Lenovo\Downloads",  # Ensure path is correct
+    "download.prompt_for_download": False,  # Do not prompt for download location
+    "download.directory_upgrade": True,  # Upgrade directory if needed
+    "safebrowsing.enabled": True,  #                       # Disable safe browsing to prevent interruptions
+})
     
     
     # Create the driver with the specified options
@@ -139,7 +134,7 @@ def gather_images_links(body_element,driver):
     print('Length of the element is :',img_elements)
 
     # Gather href links from <a> tags around each <img> element
-    href_links = []
+    # href_links = []
     
     for img in img_elements:
         try:
@@ -175,7 +170,7 @@ def gather_image_links(body_element):
         except Exception as e:
             print(f"No <a> tag with href found around this image: {e}")
 
-    print('href links : ', href_links[20] )
+    print('href links : ', href_links[10] )
     return href_links
 
 def search_and_click_download_button(driver, href_links):
@@ -201,27 +196,28 @@ def search_and_click_download_button(driver, href_links):
                 try:
                     button_class = button.get_attribute("class")
                     print(f"Download button {index + 1} clicked with class: {button_class}")
-                    # Wait for the button to be visible and clickable
-                    WebDriverWait(driver, 20).until(
-                EC.visibility_of(button)  # Wait for visibility
-            )
+
+                    # Find the span within the button
+                    download_span = button.find_element(By.XPATH, ".//span[normalize-space(text())='Download files']")
+                    print(f"Download span found inside button {index + 1}")
+
+                    driver.execute_script("arguments[0].scrollIntoView(true);", download_span)
+                    print('Scroll into view executed successfully.')
                     WebDriverWait(driver, 20).until(
                 EC.element_to_be_clickable(button)  # Wait for clickability
             )
-                    print(f"Download button {index + 1} is ready to be clicked.")
-
-                    # Scroll the button into view and click it
-                    driver.execute_script("arguments[0].scrollIntoView(true);", button)
-                    driver.execute_script("arguments[0].click();", button)
-                    print(f"Download button {index + 1} clicked.")
-
-                    # Wait for the download to start (adjust the time as necessary)
-                    time.sleep(90)  # Wait for 30 seconds (you can adjust based on your needs)
-                    print("Download started, waiting for completion...")
+                    # Wait until the span is clickable
+                    WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, ".//span[contains(@class, 'gc-icon-download')]")))
+                    print("Download span is clickable.")
+        
+                    # Click the span to trigger download
+                    driver.execute_script("arguments[0].click();", download_span)
+                    print("Download triggered successfully via span.")
+                    print("Waiting for the download to start/completely finish...")
+                    time.sleep(100)  
 
                 except Exception as e:
-                    print(f"An error occurred while clicking download button {index + 1}: {e}")
-                    
+                    print(f"An error occurred while clicking download span in button {index + 1}: {e}")
         
         except TimeoutException:
             print("Timeout waiting for page load.")
@@ -242,6 +238,6 @@ website = 'https://grabcad.com/library?page=1&per_page=100&time=all_time&sort=po
 body_element = get_body_element(website,wd)
 # Use the functions with the driver instance
 href_links = gather_image_links(body_element)
-search_and_click_download_button(driver, href_links)
+search_and_click_download_button(wd, href_links)
 
 driver.quit()
