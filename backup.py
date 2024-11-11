@@ -98,8 +98,6 @@ def setup_driver(timeout=180):
     "safebrowsing.enabled": False,                            # Disable safe browsing to prevent interruptions
 })
 
-    
-    
     # Create the driver with the specified options
     service = Service("./chromedriver/chromedriver.exe")  # Update this to your actual chromedriver path
     driver = webdriver.Chrome(service=service, options=chrome_options)
